@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公司值班管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        neutral: '#F3F4F6',
+                        dark: '#1F2937'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .fade-in {
+                animation: fadeIn 0.5s ease-out forwards;
+            }
+            .slide-up {
+                animation: slideUp 0.5s ease-out forwards;
+            }
+            .pulse-highlight {
+                animation: pulseHighlight 2s infinite;
+            }
+            .pulse-light {
+                animation: pulseLight 2s infinite;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulseHighlight {
+            0%, 100% { background-color: rgba(59, 130, 246, 0.1); }
+            50% { background-color: rgba(59, 130, 246, 0.2); }
+        }
+
+        @keyframes pulseLight {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-dark">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 标题区域 -->
+        <header class="text-center mb-10">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-primary mb-2">
+                <i class="fa fa-calendar-check-o mr-2"></i>公司值班管理系统
+            </h1>
+            <p class="text-gray-600">一站式值班安排生成与查询平台</p>
+        </header>
+
+        <!-- 功能导航 -->
+        <div class="flex flex-wrap justify-center gap-4 mb-8">
+            <button id="nav-roster" class="px-6 py-3 bg-primary text-white rounded-lg shadow transition-all flex items-center font-medium">
+                <i class="fa fa-random mr-2"></i> 值班安排生成
+            </button>
+            <button id="nav-query" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg shadow transition-all flex items-center font-medium">
+                <i class="fa fa-search mr-2"></i> 值班查询
+            </button>
+        </div>
+
+        <!-- 主内容区域 -->
+        <main class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-8">
+            <!-- 值班安排生成模块 -->
+            <div id="roster-module">
+                <!-- 步骤导航 -->
+                <div class="flex flex-wrap justify-between items-center mb-8 border-b pb-4">
+                    <div class="flex items-center step-indicator" data-step="1">
+                        <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mr-2">1</div>
+                        <span class="font-medium">设置人员</span>
+                    </div>
+                    <div class="flex items-center step-indicator opacity-50" data-step="2">
+                        <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center mr-2">2</div>
+                        <span>选择时间</span>
+                    </div>
+                    <div class="flex items-center step-indicator opacity-50" data-step="3">
+                        <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center mr-2">3</div>
+                        <span>生成排班</span>
+                    </div>
+                    <div class="flex items-center step-indicator opacity-50" data-step="4">
+                        <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center mr-2">4</div>
+                        <span>查看结果</span>
+                    </div>
+                </div>
+
+                <!-- 步骤内容 -->
+                <div class="step-content" id="step-1">
+                    <h2 class="text-xl font-semibold mb-6">参与值班人员设置</h2>
+                    <p class="text-gray-600 mb-6">请输入8名参与值班的人员姓名（必须填写8人）</p>
+                    
+                    <div id="person-inputs" class="space-y-4 mb-8">
+                        <!-- 8个输入框将动态生成 -->
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button id="to-step-2" class="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg shadow transition-all flex items-center opacity-50 cursor-not-allowed">
+                            下一步 <i class="fa fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="step-content hidden" id="step-2">
+                    <h2 class="text-xl font-semibold mb-6">时间范围设置</h2>
+                    <p class="text-gray-600 mb-6">请选择需要安排值班的时间范围</p>
+                    
+                    <div class="space-y-6 mb-8">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">开始日期</label>
+                            <input type="date" id="start-date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">结束日期</label>
+                            <input type="date" id="end-date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">每日值班人数</label>
+                            <select id="daily-count" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                                <option value="2">2人</option>
+                                <option value="3" selected>3人</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <button id="back-to-step-1" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg shadow transition-all flex items-center">
+                            <i class="fa fa-arrow-left mr-2"></i> 上一步
+                        </button>
+                        <button id="to-step-3" class="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg shadow transition-all flex items-center opacity-50 cursor-not-allowed">
+                            生成排班 <i class="fa fa-random ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="step-content hidden" id="step-3">
+                    <h2 class="text-xl font-semibold mb-6">正在生成值班表</h2>
+                    <p class="text-gray-600 mb-8 text-center">系统正在公平随机地分配值班安排，请稍候...</p>
+                    
+                    <div class="flex flex-col items-center">
+                        <div class="w-24 h-24 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-6"></div>
+                        <div class="text-gray-600 pulse-light" id="generation-status">正在平衡每个人的值班次数...</div>
+                    </div>
+                    
+                    <div class="mt-8 hidden" id="generation-complete">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
+                            <i class="fa fa-check-circle text-green-500 text-xl mr-3"></i>
+                            <div>
+                                <div class="font-medium text-green-800">值班表生成完成</div>
+                                <div class="text-sm text-green-700">已确保每个人的值班次数尽可能平均</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between mt-8">
+                        <button id="back-to-step-2" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg shadow transition-all flex items-center">
+                            <i class="fa fa-arrow-left mr-2"></i> 上一步
+                        </button>
+                        <button id="to-step-4" class="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg shadow transition-all flex items-center hidden">
+                            查看结果 <i class="fa fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="step-content hidden" id="step-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold">值班安排结果</h2>
+                        <div class="flex space-x-2">
+                            <button id="print-roster" class="px-4 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all text-sm flex items-center">
+                                <i class="fa fa-print mr-1"></i> 打印
+                            </button>
+                            <button id="regenerate-roster" class="px-4 py-1 bg-primary hover:bg-primary/90 text-white rounded-lg transition-all text-sm flex items-center">
+                                <i class="fa fa-refresh mr-1"></i> 重新生成
+                            </button>
+                            <button id="go-to-query" class="px-4 py-1 bg-accent hover:bg-accent/90 text-white rounded-lg transition-all text-sm flex items-center">
+                                <i class="fa fa-search mr-1"></i> 查看个人值班
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6 bg-neutral rounded-lg p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <div class="text-sm text-gray-500">时间范围</div>
+                                <div class="font-medium" id="result-date-range">-</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">总工作日</div>
+                                <div class="font-medium" id="result-workdays">-</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">每日值班人数</div>
+                                <div class="font-medium" id="result-daily-count">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <h3 class="font-semibold mb-4">值班次数统计</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="stats-container">
+                            <!-- 统计数据将在这里显示 -->
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-semibold mb-4">每日值班安排</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200" id="roster-table">
+                                <thead>
+                                    <tr>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">星期</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">值班人员</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="roster-body">
+                                    <!-- 值班安排将在这里显示 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between mt-8">
+                        <button id="back-to-step-3" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg shadow transition-all flex items-center">
+                            <i class="fa fa-arrow-left mr-2"></i> 上一步
+                        </button>
+                        <button id="restart-system" class="px-6 py-2 bg-accent hover:bg-accent/90 text-white rounded-lg shadow transition-all flex items-center">
+                            重新开始 <i class="fa fa-refresh ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 值班查询模块 -->
+            <div id="query-module" class="hidden">
+                <!-- 搜索区域 -->
+                <div class="mb-8">
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="flex-1 relative">
+                            <input 
+                                type="text" 
+                                id="name-search" 
+                                placeholder="请输入您的姓名查询值班安排..." 
+                                class="w-full px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none pl-12"
+                            >
+                            <i class="fa fa-user-circle absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        <button id="search-btn" class="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg shadow transition-all flex items-center justify-center whitespace-nowrap">
+                            <i class="fa fa-search mr-2"></i> 查询
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4 flex flex-wrap gap-2" id="recent-searches">
+                        <!-- 最近搜索将在这里显示 -->
+                    </div>
+                </div>
+
+                <!-- 初始提示区域 -->
+                <div id="initial-message" class="text-center py-12 text-gray-500">
+                    <div class="w-16 h-16 bg-neutral rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa fa-calendar-o text-2xl text-gray-400"></i>
+                    </div>
+                    <p>请输入姓名查询值班安排</p>
+                </div>
+
+                <!-- 加载状态 -->
+                <div id="loading-state" class="hidden text-center py-12">
+                    <div class="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+                    <p class="text-gray-600">正在查询值班信息...</p>
+                </div>
+
+                <!-- 无结果状态 -->
+                <div id="no-result" class="hidden text-center py-12 text-gray-500">
+                    <div class="w-16 h-16 bg-neutral rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa fa-search text-2xl text-gray-400"></i>
+                    </div>
+                    <p>未找到该人员的值班信息</p>
+                </div>
+
+                <!-- 结果区域 -->
+                <div id="result-area" class="hidden">
+                    <!-- 个人信息与统计 -->
+                    <div class="bg-neutral rounded-lg p-5 mb-6">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between">
+                            <div>
+                                <h2 class="text-xl font-bold text-primary" id="result-name">-</h2>
+                                <p class="text-gray-600" id="result-period">-</p>
+                            </div>
+                            <div class="mt-4 md:mt-0 grid grid-cols-2 md:grid-cols-3 gap-4 w-full md:w-auto">
+                                <div class="bg-white rounded-lg p-3 text-center">
+                                    <div class="text-sm text-gray-500">总值班次数</div>
+                                    <div class="text-xl font-bold text-dark" id="total-duty-count">-</div>
+                                </div>
+                                <div class="bg-white rounded-lg p-3 text-center">
+                                    <div class="text-sm text-gray-500">本周值班</div>
+                                    <div class="text-xl font-bold text-dark" id="this-week-count">-</div>
+                                </div>
+                                <div class="bg-white rounded-lg p-3 text-center col-span-2 md:col-span-1">
+                                    <div class="text-sm text-gray-500">下次值班</div>
+                                    <div class="text-xl font-bold text-dark" id="next-duty">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 即将到来的值班 -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fa fa-calendar-check-o text-accent mr-2"></i>
+                            即将到来的值班
+                        </h3>
+                        <div id="upcoming-duties" class="space-y-3">
+                            <!-- 即将到来的值班将在这里显示 -->
+                        </div>
+                    </div>
+
+                    <!-- 所有值班安排 -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fa fa-list-alt text-primary mr-2"></i>
+                            所有值班安排
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">星期</th>
+                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">同组值班人员</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="all-duties-body">
+                                    <!-- 所有值班安排将在这里显示 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="text-center text-gray-500 text-sm">
+            <p>© 2025 公司值班管理系统 | 公平、高效的值班管理解决方案</p>
+        </footer>
+    </div>
+
+    <script>
+        // 全局变量
+        let people = [];
+        let startDate = null;
+        let endDate = null;
+        let dailyCount = 3;
+        let rosterData = [];
+        let statsData = {};
+
+        // DOM元素
+        // 导航元素
+        const navRosterBtn = document.getElementById('nav-roster');
+        const navQueryBtn = document.getElementById('nav-query');
+        const rosterModule = document.getElementById('roster-module');
+        const queryModule = document.getElementById('query-module');
+        const goToQueryBtn = document.getElementById('go-to-query');
+        
+        // 排班模块元素
+        const stepIndicators = document.querySelectorAll('.step-indicator');
+        const stepContents = document.querySelectorAll('.step-content');
+        const personInputsContainer = document.getElementById('person-inputs');
+        const toStep2Btn = document.getElementById('to-step-2');
+        const backToStep1Btn = document.getElementById('back-to-step-1');
+        const toStep3Btn = document.getElementById('to-step-3');
+        const backToStep2Btn = document.getElementById('back-to-step-2');
+        const toStep4Btn = document.getElementById('to-step-4');
+        const backToStep3Btn = document.getElementById('back-to-step-3');
+        const restartSystemBtn = document.getElementById('restart-system');
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+        const dailyCountSelect = document.getElementById('daily-count');
+        const generationStatus = document.getElementById('generation-status');
+        const generationComplete = document.getElementById('generation-complete');
+        const regenerateRosterBtn = document.getElementById('regenerate-roster');
+        const printRosterBtn = document.getElementById('print-roster');
+        const resultDateRange = document.getElementById('result-date-range');
+        const resultWorkdays = document.getElementById('result-workdays');
+        const resultDailyCount = document.getElementById('result-daily-count');
+        const statsContainer = document.getElementById('stats-container');
+        const rosterBody = document.getElementById('roster-body');
+        
+        // 查询模块元素
+        const nameSearchInput = document.getElementById('name-search');
+        const searchBtn = document.getElementById('search-btn');
+        const recentSearchesContainer = document.getElementById('recent-searches');
+        const initialMessage = document.getElementById('initial-message');
+        const loadingState = document.getElementById('loading-state');
+        const noResult = document.getElementById('no-result');
+        const resultArea = document.getElementById('result-area');
+        const resultName = document.getElementById('result-name');
+        const resultPeriod = document.getElementById('result-period');
+        const totalDutyCount = document.getElementById('total-duty-count');
+        const thisWeekCount = document.getElementById('this-week-count');
+        const nextDuty = document.getElementById('next-duty');
+        const upcomingDuties = document.getElementById('upcoming-duties');
+        const allDutiesBody = document.getElementById('all-duties-body');
+
+        // 初始化页面
+        function init() {
+            // 设置今天为默认日期
+            const today = new Date();
+            const formattedToday = today.toISOString().split('T')[0];
+            
+            // 设置默认结束日期为30天后
+            const nextMonth = new Date();
+            nextMonth.setDate(today.getDate() + 30);
+            const formattedNextMonth = nextMonth.toISOString().split('T')[0];
+            
+            startDateInput.value = formattedToday;
+            endDateInput.value = formattedNextMonth;
+            
+            // 创建8个人员输入框
+            for (let i = 0; i < 8; i++) {
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'flex items-center';
+                inputGroup.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">${i + 1}</div>
+                    <input type="text" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none person-input" 
+                           placeholder="请输入第${i + 1}位值班人员姓名">
+                `;
+                personInputsContainer.appendChild(inputGroup);
+            }
+            
+            // 显示最近搜索
+            displayRecentSearches();
+            
+            // 添加事件监听
+            addEventListeners();
+        }
+
+        // 添加事件监听
+        function addEventListeners() {
+            // 导航按钮
+            navRosterBtn.addEventListener('click', () => switchModule('roster'));
+            navQueryBtn.addEventListener('click', () => switchModule('query'));
+            goToQueryBtn.addEventListener('click', () => {
+                switchModule('query');
+                // 滚动到查询区域
+                setTimeout(() => {
+                    nameSearchInput.focus();
+                }, 500);
+            });
+            
+            // 排班模块事件
+            // 监听人员输入变化
+            document.querySelectorAll('.person-input').forEach(input => {
+                input.addEventListener('input', checkPeopleComplete);
+            });
+            
+            // 日期输入变化
+            startDateInput.addEventListener('change', checkDateValid);
+            endDateInput.addEventListener('change', checkDateValid);
+            
+            // 每日人数变化
+            dailyCountSelect.addEventListener('change', () => {
+                dailyCount = parseInt(dailyCountSelect.value);
+            });
+            
+            // 步骤导航按钮
+            toStep2Btn.addEventListener('click', () => goToStep(2));
+            backToStep1Btn.addEventListener('click', () => goToStep(1));
+            toStep3Btn.addEventListener('click', generateRoster);
+            backToStep2Btn.addEventListener('click', () => goToStep(2));
+            toStep4Btn.addEventListener('click', () => goToStep(4));
+            backToStep3Btn.addEventListener('click', () => goToStep(3));
+            restartSystemBtn.addEventListener('click', restartSystem);
+            
+            // 重新生成和打印
+            regenerateRosterBtn.addEventListener('click', generateRoster);
+            printRosterBtn.addEventListener('click', () => window.print());
+            
+            // 查询模块事件
+            searchBtn.addEventListener('click', () => {
+                const name = nameSearchInput.value.trim();
+                performSearch(name);
+            });
+            
+            // 回车键搜索
+            nameSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const name = nameSearchInput.value.trim();
+                    performSearch(name);
+                }
+            });
+        }
+
+        // 切换模块
+        function switchModule(module) {
+            if (module === 'roster') {
+                // 显示排班模块，隐藏查询模块
+                rosterModule.classList.remove('hidden');
+                queryModule.classList.add('hidden');
+                
+                // 更新导航按钮样式
+                navRosterBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+                navRosterBtn.classList.add('bg-primary', 'text-white');
+                
+                navQueryBtn.classList.remove('bg-primary', 'text-white');
+                navQueryBtn.classList.add('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+            } else {
+                // 显示查询模块，隐藏排班模块
+                rosterModule.classList.add('hidden');
+                queryModule.classList.remove('hidden');
+                
+                // 更新导航按钮样式
+                navQueryBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+                navQueryBtn.classList.add('bg-primary', 'text-white');
+                
+                navRosterBtn.classList.remove('bg-primary', 'text-white');
+                navRosterBtn.classList.add('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+            }
+        }
+
+        // 检查人员是否全部输入
+        function checkPeopleComplete() {
+            const inputs = document.querySelectorAll('.person-input');
+            let allComplete = true;
+            people = [];
+            
+            inputs.forEach(input => {
+                const name = input.value.trim();
+                if (!name) {
+                    allComplete = false;
+                } else {
+                    people.push(name);
+                }
+            });
+            
+            // 更新按钮状态
+            if (allComplete && people.length === 8) {
+                toStep2Btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                toStep2Btn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        // 检查日期是否有效
+        function checkDateValid() {
+            startDate = new Date(startDateInput.value);
+            endDate = new Date(endDateInput.value);
+            
+            // 检查日期是否有效且结束日期在开始日期之后
+            if (startDate && endDate && endDate >= startDate) {
+                toStep3Btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                return true;
+            } else {
+                toStep3Btn.classList.add('opacity-50', 'cursor-not-allowed');
+                return false;
+            }
+        }
+
+        // 切换到指定步骤
+        function goToStep(step) {
+            // 更新步骤指示器
+            stepIndicators.forEach(indicator => {
+                const indicatorStep = parseInt(indicator.dataset.step);
+                if (indicatorStep < step) {
+                    indicator.classList.remove('opacity-50');
+                    indicator.querySelector('div').classList.remove('bg-gray-300', 'text-gray-700');
+                    indicator.querySelector('div').classList.add('bg-primary', 'text-white');
+                } else if (indicatorStep === step) {
+                    indicator.classList.remove('opacity-50');
+                    indicator.querySelector('div').classList.remove('bg-gray-300', 'text-gray-700');
+                    indicator.querySelector('div').classList.add('bg-primary', 'text-white');
+                } else {
+                    indicator.classList.add('opacity-50');
+                    indicator.querySelector('div').classList.remove('bg-primary', 'text-white');
+                    indicator.querySelector('div').classList.add('bg-gray-300', 'text-gray-700');
+                }
+            });
+            
+            // 更新步骤内容
+            stepContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            const currentStep = document.getElementById(`step-${step}`);
+            currentStep.classList.remove('hidden');
+            
+            // 如果是步骤4，滚动到顶部
+            if (step === 4) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // 生成值班表
+        function generateRoster() {
+            if (!checkDateValid()) return;
+            
+            goToStep(3);
+            generationComplete.classList.add('hidden');
+            toStep4Btn.classList.add('hidden');
+            generationStatus.textContent = '正在计算工作日...';
+            
+            // 模拟处理时间
+            setTimeout(() => {
+                // 获取所有工作日
+                const workdays = getWorkdaysBetween(startDate, endDate);
+                generationStatus.textContent = `已找到 ${workdays.length} 个工作日，正在分配值班人员...`;
+                
+                // 模拟处理时间
+                setTimeout(() => {
+                    // 生成值班安排
+                    rosterData = generateBalancedRoster(workdays, people, dailyCount);
+                    generationStatus.textContent = '正在平衡每个人的值班次数...';
+                    
+                    // 保存到localStorage供查询模块使用
+                    localStorage.setItem('dutyRosterData', JSON.stringify(rosterData));
+                    
+                    // 模拟处理时间
+                    setTimeout(() => {
+                        // 计算统计数据
+                        calculateStats();
+                        generationStatus.textContent = '完成！';
+                        generationComplete.classList.remove('hidden');
+                        
+                        // 显示结果
+                        displayRosterResults(workdays);
+                        
+                        // 显示下一步按钮
+                        setTimeout(() => {
+                            toStep4Btn.classList.remove('hidden');
+                        }, 500);
+                    }, 1000);
+                }, 1000);
+            }, 800);
+        }
+
+        // 获取两个日期之间的所有工作日（周一至周五）
+        function getWorkdaysBetween(start, end) {
+            const workdays = [];
+            const current = new Date(start);
+            
+            while (current <= end) {
+                const dayOfWeek = current.getDay();
+                // 0是周日，6是周六，只保留1-5（周一至周五）
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                    workdays.push(new Date(current));
+                }
+                current.setDate(current.getDate() + 1);
+            }
+            
+            return workdays;
+        }
+
+        // 生成均衡的值班表
+        function generateBalancedRoster(workdays, people, dailyCount) {
+            // 初始化每个人的值班次数
+            const dutyCount = {};
+            people.forEach(person => {
+                dutyCount[person] = 0;
+            });
+            
+            // 生成值班安排
+            const roster = [];
+            
+            workdays.forEach(date => {
+                // 优先选择值班次数较少的人
+                const sortedPeople = [...people].sort((a, b) => dutyCount[a] - dutyCount[b]);
+                
+                // 随机选择dailyCount个人，但优先选择次数少的
+                let selected = [];
+                const available = [...sortedPeople];
+                
+                for (let i = 0; i < dailyCount; i++) {
+                    // 随着选择进行，增加随机性
+                    const randomFactor = Math.min(3, Math.floor(i * 1.5));
+                    const startIndex = Math.floor(Math.random() * (randomFactor + 1));
+                    const person = available.splice(startIndex, 1)[0];
+                    
+                    selected.push(person);
+                    dutyCount[person]++;
+                }
+                
+                // 打乱选中的人，避免总是按固定顺序显示
+                selected = shuffleArray(selected);
+                
+                roster.push({
+                    date: new Date(date),
+                    people: selected
+                });
+            });
+            
+            return roster;
+        }
+
+        // 计算统计数据
+        function calculateStats() {
+            statsData = {};
+            
+            // 初始化
+            people.forEach(person => {
+                statsData[person] = 0;
+            });
+            
+            // 统计每个人的值班次数
+            rosterData.forEach(day => {
+                day.people.forEach(person => {
+                    statsData[person]++;
+                });
+            });
+        }
+
+        // 显示排班结果
+        function displayRosterResults(workdays) {
+            // 格式化日期
+            const formatDate = (date) => {
+                return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+            };
+            
+            resultDateRange.textContent = `${formatDate(startDate)} 至 ${formatDate(endDate)}`;
+            resultWorkdays.textContent = workdays.length;
+            resultDailyCount.textContent = dailyCount;
+            
+            // 显示统计数据
+            statsContainer.innerHTML = '';
+            Object.entries(statsData).forEach(([person, count]) => {
+                const statItem = document.createElement('div');
+                statItem.className = 'bg-neutral rounded-lg p-3';
+                statItem.innerHTML = `
+                    <div class="font-medium text-sm mb-1">${person}</div>
+                    <div class="flex items-center">
+                        <i class="fa fa-calendar-check-o text-primary mr-1"></i>
+                        <span class="text-sm">${count} 次值班</span>
+                    </div>
+                `;
+                statsContainer.appendChild(statItem);
+            });
+            
+            // 显示值班表
+            rosterBody.innerHTML = '';
+            rosterData.forEach((day, index) => {
+                const date = day.date;
+                const dayOfWeek = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
+                
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm font-medium">${formatDate(date)}</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm ${date.getDay() === 6 || date.getDay() === 0 ? 'text-red-500' : ''}">星期${dayOfWeek}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="space-y-1">
+                            ${day.people.map((person, i) => `
+                                <div class="text-sm flex items-center">
+                                    <span class="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center mr-2">${i + 1}</span>
+                                    ${person}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </td>
+                `;
+                
+                // 添加动画效果
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(10px)';
+                rosterBody.appendChild(row);
+                
+                // 延迟显示，创建逐个出现的效果
+                setTimeout(() => {
+                    row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    row.style.opacity = '1';
+                    row.style.transform = 'translateY(0)';
+                }, 50 * index);
+            });
+        }
+
+        // 重新开始系统
+        function restartSystem() {
+            // 清空输入
+            document.querySelectorAll('.person-input').forEach(input => {
+                input.value = '';
+            });
+            
+            // 重置变量
+            people = [];
+            startDate = null;
+            endDate = null;
+            rosterData = [];
+            statsData = {};
+            
+            // 重置按钮状态
+            checkPeopleComplete();
+            checkDateValid();
+            
+            // 回到第一步
+            goToStep(1);
+        }
+
+        // 保存最近搜索记录
+        function saveRecentSearch(name) {
+            if (!name.trim()) return;
+            
+            let recentSearches = JSON.parse(localStorage.getItem('recentDutySearches') || '[]');
+            
+            // 移除可能存在的相同记录
+            recentSearches = recentSearches.filter(item => item.toLowerCase() !== name.toLowerCase());
+            
+            // 添加新记录到开头
+            recentSearches.unshift(name);
+            
+            // 只保留最近5条记录
+            if (recentSearches.length > 5) {
+                recentSearches = recentSearches.slice(0, 5);
+            }
+            
+            // 保存到localStorage
+            localStorage.setItem('recentDutySearches', JSON.stringify(recentSearches));
+            
+            // 更新最近搜索显示
+            displayRecentSearches();
+        }
+
+        // 显示最近搜索记录
+        function displayRecentSearches() {
+            const recentSearches = JSON.parse(localStorage.getItem('recentDutySearches') || '[]');
+            
+            recentSearchesContainer.innerHTML = '';
+            
+            if (recentSearches.length > 0) {
+                recentSearches.forEach(name => {
+                    const tag = document.createElement('div');
+                    tag.className = 'px-3 py-1 bg-neutral rounded-full text-sm text-gray-700 hover:bg-primary/10 hover:text-primary cursor-pointer transition-colors';
+                    tag.textContent = name;
+                    tag.addEventListener('click', () => {
+                        nameSearchInput.value = name;
+                        performSearch(name);
+                    });
+                    recentSearchesContainer.appendChild(tag);
+                });
+            }
+        }
+
+        // 执行搜索
+        function performSearch(name) {
+            if (!name.trim()) {
+                showInitialMessage();
+                return;
+            }
+            
+            // 显示加载状态
+            showLoadingState();
+            
+            // 获取值班数据
+            const dutyData = getDutyDataFromStorage();
+            
+            // 模拟网络延迟
+            setTimeout(() => {
+                // 查找包含该人员的值班记录
+                const personDuties = dutyData.filter(item => 
+                    item.people.some(p => p.includes(name) || name.includes(p))
+                );
+                
+                if (personDuties.length === 0) {
+                    showNoResult();
+                } else {
+                    displayQueryResults(name, personDuties, dutyData);
+                    saveRecentSearch(name);
+                }
+            }, 800);
+        }
+
+        // 从本地存储获取值班数据
+        function getDutyDataFromStorage() {
+            // 从localStorage获取数据
+            const storedData = localStorage.getItem('dutyRosterData');
+            if (storedData) {
+                try {
+                    const parsedData = JSON.parse(storedData);
+                    // 转换日期字符串为Date对象
+                    parsedData.forEach(item => {
+                        item.date = new Date(item.date);
+                    });
+                    return parsedData;
+                } catch (e) {
+                    console.error('Failed to parse duty data:', e);
+                }
+            }
+            
+            // 如果没有数据，返回模拟数据
+            return generateMockDutyData();
+        }
+
+        // 生成模拟值班数据（首次使用时）
+        function generateMockDutyData() {
+            const people = [
+                "张三", "李四", "王五", "赵六",
+                "钱七", "孙八", "周九", "吴十"
+            ];
+            
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 15); // 15天前
+            
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + 15); // 15天后
+            
+            const dutyData = [];
+            const currentDate = new Date(startDate);
+            
+            // 生成30天的值班数据
+            while (currentDate <= endDate) {
+                const dayOfWeek = currentDate.getDay();
+                // 只生成工作日的值班安排
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                    // 随机选择2-3人值班
+                    const dailyCount = Math.random() > 0.3 ? 2 : 3;
+                    const shuffledPeople = [...people].sort(() => 0.5 - Math.random());
+                    const selectedPeople = shuffledPeople.slice(0, dailyCount);
+                    
+                    dutyData.push({
+                        date: new Date(currentDate),
+                        people: selectedPeople
+                    });
+                }
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            return dutyData;
+        }
+
+        // 显示初始消息
+        function showInitialMessage() {
+            initialMessage.classList.remove('hidden');
+            loadingState.classList.add('hidden');
+            noResult.classList.add('hidden');
+            resultArea.classList.add('hidden');
+        }
+
+        // 显示加载状态
+        function showLoadingState() {
+            initialMessage.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            noResult.classList.add('hidden');
+            resultArea.classList.add('hidden');
+        }
+
+        // 显示无结果状态
+        function showNoResult() {
+            initialMessage.classList.add('hidden');
+            loadingState.classList.add('hidden');
+            noResult.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+        }
+
+        // 显示查询结果
+        function displayQueryResults(name, personDuties, allDuties) {
+            // 计算统计数据
+            const totalDutyCountValue = personDuties.length;
+            
+            // 计算本周值班次数
+            const today = new Date();
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay() + 1); // 本周一
+            weekStart.setHours(0, 0, 0, 0);
+            
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 4); // 本周五
+            
+            const thisWeekDuties = personDuties.filter(item => 
+                item.date >= weekStart && item.date <= weekEnd
+            );
+            const thisWeekCountValue = thisWeekDuties.length;
+            
+            // 计算下次值班
+            const futureDuties = personDuties.filter(item => item.date >= today);
+            futureDuties.sort((a, b) => a.date - b.date);
+            const nextDutyValue = futureDuties.length > 0 ? futureDuties[0] : null;
+            
+            // 计算日期范围
+            const sortedDuties = [...personDuties].sort((a, b) => a.date - b.date);
+            const startDate = sortedDuties[0].date;
+            const endDate = sortedDuties[sortedDuties.length - 1].date;
+            
+            // 格式化日期
+            const formatDate = (date) => {
+                return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+            };
+            
+            const formatDisplayDate = (date) => {
+                return `${date.getMonth() + 1}月${date.getDate()}日`;
+            };
+            
+            // 更新结果区域
+            resultName.textContent = name;
+            resultPeriod.textContent = `值班时间范围: ${formatDate(startDate)} 至 ${formatDate(endDate)}`;
+            totalDutyCount.textContent = totalDutyCountValue;
+            thisWeekCount.textContent = thisWeekCountValue;
+            
+            // 下次值班
+            if (nextDutyValue) {
+                nextDuty.textContent = formatDisplayDate(nextDutyValue.date);
+            } else {
+                nextDuty.textContent = '暂无';
+            }
+            
+            // 显示即将到来的值班（未来7天内）
+            upcomingDuties.innerHTML = '';
+            
+            const soonEnd = new Date(today);
+            soonEnd.setDate(today.getDate() + 7);
+            
+            const upcomingDutiesValue = futureDuties.filter(item => item.date <= soonEnd);
+            
+            if (upcomingDutiesValue.length > 0) {
+                upcomingDutiesValue.forEach((duty, index) => {
+                    const dayOfWeek = ['日', '一', '二', '三', '四', '五', '六'][duty.date.getDay()];
+                    const isToday = duty.date.toDateString() === today.toDateString();
+                    const isTomorrow = new Date(duty.date.getTime() - 86400000).toDateString() === today.toDateString();
+                    
+                    let dateLabel = formatDisplayDate(duty.date);
+                    if (isToday) dateLabel = '今天';
+                    if (isTomorrow) dateLabel = '明天';
+                    
+                    const dutyCard = document.createElement('div');
+                    dutyCard.className = `rounded-lg border p-4 ${isToday ? 'border-accent bg-accent/5 pulse-highlight' : 'border-gray-200'}`;
+                    dutyCard.style.opacity = '0';
+                    dutyCard.style.transform = 'translateY(10px)';
+                    dutyCard.style.transition = `opacity 0.3s ease ${index * 0.1}s, transform 0.3s ease ${index * 0.1}s`;
+                    
+                    dutyCard.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="font-medium ${isToday ? 'text-accent' : ''}">${dateLabel}（星期${dayOfWeek}）</div>
+                                <div class="text-sm text-gray-500">${formatDate(duty.date)}</div>
+                            </div>
+                            ${isToday ? '<span class="bg-accent/20 text-accent text-xs px-2 py-1 rounded-full">今天值班</span>' : ''}
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-600 mb-1">同组值班人员：</div>
+                            <div class="flex flex-wrap gap-2">
+                                ${duty.people.map(person => `
+                                    <span class="bg-neutral text-sm px-2 py-1 rounded-full ${person === name ? 'bg-primary/10 text-primary font-medium' : ''}">
+                                        ${person}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    
+                    upcomingDuties.appendChild(dutyCard);
+                    
+                    // 触发动画
+                    setTimeout(() => {
+                        dutyCard.style.opacity = '1';
+                        dutyCard.style.transform = 'translateY(0)';
+                    }, 10);
+                });
+            } else {
+                upcomingDuties.innerHTML = `
+                    <div class="text-center py-6 text-gray-500 bg-neutral rounded-lg">
+                        未来7天内暂无值班安排
+                    </div>
+                `;
+            }
+            
+            // 显示所有值班安排
+            allDutiesBody.innerHTML = '';
+            
+            // 按日期倒序排列（最近的在前）
+            const sortedForDisplay = [...personDuties].sort((a, b) => b.date - a.date);
+            
+            sortedForDisplay.forEach((duty, index) => {
+                const dayOfWeek = ['日', '一', '二', '三', '四', '五', '六'][duty.date.getDay()];
+                const isPast = duty.date < today;
+                const isToday = duty.date.toDateString() === today.toDateString();
+                
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(10px)';
+                row.style.transition = `opacity 0.3s ease ${index * 0.05}s, transform 0.3s ease ${index * 0.05}s`;
+                
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm ${isPast ? 'text-gray-500' : isToday ? 'text-accent font-medium' : ''}">
+                            ${formatDate(duty.date)}
+                        </div>
+                        ${isPast ? '<div class="text-xs text-gray-400 mt-1">已完成</div>' : ''}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm">星期${dayOfWeek}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex flex-wrap gap-1">
+                            ${duty.people.map(person => `
+                                <span class="bg-neutral text-xs px-2 py-1 rounded-full ${person === name ? 'bg-primary/10 text-primary font-medium' : ''}">
+                                    ${person}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </td>
+                `;
+                
+                allDutiesBody.appendChild(row);
+                
+                // 触发动画
+                setTimeout(() => {
+                    row.style.opacity = '1';
+                    row.style.transform = 'translateY(0)';
+                }, 10);
+            });
+            
+            // 显示结果区域
+            initialMessage.classList.add('hidden');
+            loadingState.classList.add('hidden');
+            noResult.classList.add('hidden');
+            resultArea.classList.remove('hidden');
+            
+            // 滚动到结果区域
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // 随机打乱数组
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+    
